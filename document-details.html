@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Document Information</title>
+<style>
+:root {
+  --navy: #0b2545;
+  --text: #1b2a41;
+  --muted: #5c6b80;
+  --line: #d9dfe8;
+  --bg: #f5f7fa;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+header {
+  background: white;
+  padding: 20px;
+  border-bottom: 1px solid var(--line);
+}
+h1, h2 { color: var(--navy); margin-top: 0; }
+h1 { font-size: 24px; }
+main { max-width: 760px; margin: auto; padding: 25px 16px; }
+.panel {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 24px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+label { display: block; margin-bottom: 6px; font-weight: 600; }
+input, select {
+  width: 100%;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 15px;
+}
+button {
+  padding: 11px 18px;
+  background: var(--navy);
+  color: white;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.block { width: 100%; margin-top: 22px; }
+.error { color: #b42318; }
+@media(max-width:600px) {
+  .grid { grid-template-columns: 1fr; }
+  .panel { padding: 17px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Document Screening System</h1>
+  <p>Document Information</p>
+</header>
+
+<main>
+<section class="panel">
+<h2>Enter Document Details</h2>
+
+<form id="documentForm">
+<div class="grid">
+
+<div>
+<label for="type">Document Type *</label>
+<select id="type" required>
+<option value="">Select type</option>
+<option>Aadhaar Card</option>
+<option>PAN Card</option>
+<option>Driving Licence</option>
+<option>Educational Certificate</option>
+<option>Marksheet</option>
+<option>Other</option>
+</select>
+</div>
+
+<div>
+<label for="holder">Document Holder Name *</label>
+<input id="holder" required>
+</div>
+
+<div>
+<label for="number">Document Number (Optional)</label>
+<input id="number">
+</div>
+
+<div>
+<label for="authority">Issuing Authority (Optional)</label>
+<input id="authority">
+</div>
+
+<div>
+<label for="issue">Issue Date (Optional)</label>
+<input type="date" id="issue">
+</div>
+
+<div>
+<label for="expiry">Expiry Date (Optional)</label>
+<input type="date" id="expiry">
+</div>
+
+<div>
+<label for="purpose">Purpose of Verification</label>
+<select id="purpose">
+<option value="">Select purpose</option>
+<option>Education</option>
+<option>Employment</option>
+<option>Personal Record</option>
+<option>Other</option>
+</select>
+</div>
+
+</div>
+
+<p id="error" class="error" hidden></p>
+
+<button type="submit" class="block">
+Continue to Scanner
+</button>
+</form>
+</section>
+</main>
+
+<script>
+const form = document.getElementById("documentForm");
+
+const saved = JSON.parse(
+  sessionStorage.getItem("dss_document") || "{}"
+);
+
+["type", "holder", "number", "authority",
+ "issue", "expiry", "purpose"].forEach(id => {
+  if (saved[id] !== undefined) {
+    document.getElementById(id).value = saved[id];
+  }
+});
+
+form.addEventListener("submit", function(event) {
+  event.preventDefault();
+
+  const type = document.getElementById("type").value;
+  const holder = document.getElementById("holder").value.trim();
+  const issue = document.getElementById("issue").value;
+  const expiry = document.getElementById("expiry").value;
+  const error = document.getElementById("error");
+
+  if (!type || !holder) {
+    error.textContent = "Please enter all required details.";
+    error.hidden = false;
+    return;
+  }
+
+  if (issue && expiry && expiry < issue) {
+    error.textContent =
+      "Expiry date cannot be earlier than issue date.";
+    error.hidden = false;
+    return;
+  }
+
+  const data = {
+    type,
+    holder,
+    number: document.getElementById("number").value.trim(),
+    authority: document.getElementById("authority").value.trim(),
+    issue,
+    expiry,
+    purpose: document.getElementById("purpose").value
+  };
+
+  sessionStorage.setItem("dss_document", JSON.stringify(data));
+
+  window.location.href = "scanner.html";
+});
+</script>
+
+</body>
+</html>

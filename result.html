@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screening Results</title>
+<style>
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #f5f7fa;
+  color: #1b2a41;
+}
+header {
+  background: white;
+  padding: 20px;
+  border-bottom: 1px solid #d9dfe8;
+}
+h1, h2 { color: #0b2545; }
+main { max-width: 700px; margin: auto; padding: 25px 16px; }
+.panel {
+  background: white;
+  padding: 24px;
+  margin-bottom: 18px;
+  border: 1px solid #d9dfe8;
+  border-radius: 6px;
+}
+dl {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 12px;
+}
+dt { color: #5c6b80; }
+dd { margin: 0; overflow-wrap: anywhere; font-weight: 600; }
+.badge {
+  display: inline-block;
+  padding: 6px 13px;
+  border-radius: 20px;
+  background: #fff4d6;
+  color: #9a6700;
+  font-weight: 700;
+}
+li { padding: 10px 0; border-bottom: 1px solid #d9dfe8; }
+.notice {
+  padding: 12px;
+  background: #eaf0f8;
+  border-radius: 5px;
+  font-size: 14px;
+}
+button {
+  padding: 11px 16px;
+  border: 1px solid #0b2545;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.primary { background: #0b2545; color: white; }
+.secondary { background: white; color: #0b2545; }
+@media(max-width:600px) {
+  dl { grid-template-columns: 1fr; gap: 3px; }
+  dd { margin-bottom: 10px; }
+  .panel { padding: 17px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>Document Screening System</h1>
+<p>Document Screening Results</p>
+</header>
+
+<main>
+<section class="panel">
+<h2>Document Information</h2>
+
+<dl>
+<dt>Document Type</dt><dd id="type">—</dd>
+<dt>Document Holder Name</dt><dd id="holder">—</dd>
+<dt>File Name</dt><dd id="file">—</dd>
+<dt>File Size</dt><dd id="size">—</dd>
+</dl>
+
+<hr>
+
+<h2>Risk Assessment</h2>
+<p><span class="badge">Review Required</span></p>
+
+<p id="explanation">
+The document requires further verification.
+</p>
+</section>
+
+<section class="panel">
+<h2>Verification Checks</h2>
+<ul>
+<li>Required document details — Passed</li>
+<li>Supported file selected — Passed</li>
+<li>OCR / Text Extraction — Not Verified</li>
+<li>Forgery Detection — Not Verified</li>
+<li>Government Database Verification — Not Verified</li>
+</ul>
+
+<p class="notice">
+This is a demonstration prototype. It does not perform real OCR,
+forgery detection or official government verification.
+A successful upload does not prove that a document is genuine.
+</p>
+
+<button type="button" id="again" class="primary">
+Screen Another Document
+</button>
+
+<button type="button" id="back" class="secondary">
+Back to Scanner
+</button>
+</section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+
+const doc = JSON.parse(
+  sessionStorage.getItem("dss_document") || "null"
+);
+
+const file = JSON.parse(
+  sessionStorage.getItem("dss_file_meta") || "null"
+);
+
+if (!doc || !file) {
+  $("explanation").textContent =
+    "Document details or file information are missing. Please start again.";
+} else {
+  $("type").textContent = doc.type || "Not provided";
+  $("holder").textContent = doc.holder || "Not provided";
+  $("file").textContent = file.name || "Not provided";
+  $("size").textContent =
+    (file.size / (1024 * 1024)).toFixed(2) + " MB";
+
+  $("explanation").textContent =
+    "Basic form and file checks are complete. Authenticity remains unverified.";
+}
+
+$("again").onclick = () => {
+  sessionStorage.removeItem("dss_file_meta");
+  window.location.href = "document-details.html";
+};
+
+$("back").onclick = () => {
+  window.location.href = "scanner.html";
+};
+</script>
+</body>
+</html>

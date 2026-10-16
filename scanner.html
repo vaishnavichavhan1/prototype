@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Document Scanner</title>
+<style>
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #f5f7fa;
+  color: #1b2a41;
+}
+header {
+  background: white;
+  padding: 20px;
+  border-bottom: 1px solid #d9dfe8;
+}
+h1, h2 { color: #0b2545; }
+main { max-width: 700px; margin: auto; padding: 25px 16px; }
+.panel {
+  background: white;
+  padding: 24px;
+  border: 1px solid #d9dfe8;
+  border-radius: 6px;
+}
+.drop {
+  border: 2px dashed #aab6c8;
+  background: #f5f7fa;
+  padding: 30px 15px;
+  text-align: center;
+}
+button {
+  padding: 11px 17px;
+  border: 1px solid #0b2545;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 5px;
+}
+.primary { background: #0b2545; color: white; }
+.secondary { background: white; color: #0b2545; }
+.block { width: 100%; margin-top: 18px; }
+#preview {
+  display: block;
+  max-width: 100%;
+  max-height: 300px;
+  margin: 18px auto;
+}
+video {
+  width: 100%;
+  max-height: 350px;
+  background: black;
+  margin-top: 15px;
+}
+.error { color: #b42318; }
+</style>
+</head>
+<body>
+
+<header>
+<h1>Document Screening System</h1>
+<p>Scan or Upload Document</p>
+</header>
+
+<main>
+<section class="panel">
+<h2>Upload Your Document</h2>
+<p>Accepted formats: JPG, JPEG, PNG and PDF. Maximum 10 MB.</p>
+
+<div class="drop">
+<p>Select a document to screen</p>
+<button type="button" class="primary" id="cameraBtn">
+Scan Document
+</button>
+<button type="button" class="secondary" id="uploadBtn">
+Upload Document
+</button>
+</div>
+
+<input type="file" id="fileInput"
+accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+hidden>
+
+<div id="cameraArea" hidden>
+<video id="video" autoplay playsinline></video>
+<button type="button" id="captureBtn" class="primary">
+Capture Photo
+</button>
+<button type="button" id="closeCamera" class="secondary">
+Close Camera
+</button>
+</div>
+
+<div id="fileArea" hidden>
+<p><strong id="fileName"></strong></p>
+<img id="preview" alt="Document preview" hidden>
+<p id="pdfMessage" hidden>PDF selected. Preview unavailable.</p>
+<button type="button" id="removeBtn" class="secondary">
+Remove File
+</button>
+</div>
+
+<p id="error" class="error" hidden></p>
+
+<button type="button" id="screenBtn"
+class="primary block" disabled>
+Screen Document
+</button>
+
+<button type="button" id="backBtn" class="secondary block">
+Back to Document Details
+</button>
+</section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+
+let selectedFile = null;
+let cameraStream = null;
+
+if (!sessionStorage.getItem("dss_document")) {
+  window.location.href = "index.html";
+}
+
+$("uploadBtn").onclick = () => $("fileInput").click();
+
+$("fileInput").addEventListener("change", event => {
+  const file = event.target.files[0];
+  if (file) acceptFile(file);
+});
+
+function acceptFile(file) {
+  const ext = file.name.split(".").pop().toLowerCase();
+  const valid = ["jpg", "jpeg", "png", "pdf"];
+
+  if (!valid.includes(ext) ||
+      !["image/jpeg", "image/png", "application/pdf"].includes(file.type)) {
+    showError("Please select a JPG, JPEG, PNG or PDF file.");
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    showError("File must be 10 MB or smaller.");
+    return;
+  }
+
+  selectedFile = file;
+  $("fileArea").hidden = false;
+  $("fileName").textContent = file.name;
+  $("preview").hidden = true;
+  $("pdfMessage").hidden = true;
+
+  if (file.type.startsWith("image/")) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      $("preview").src = reader.result;
+      $("preview").hidden = false;
+    };
+    reader.readAsDataURL(file);
+  } else {
+    $("pdfMessage").hidden = false;
+  }
+
+  $("screenBtn").disabled = false;
+  showError("");
+}
+
+function showError(message) {
+  $("error").textContent = message;
+  $("error").hidden = !message;
+}
+
+$("removeBtn").onclick = () => {
+  selectedFile = null;
+  $("fileInput").value = "";
+  $("fileArea").hidden = true;
+  $("screenBtn").disabled = true;
+  $("preview").src = "";
+  showError("");
+};
+
+$("backBtn").onclick = () => {
+  window.location.href = "document-details.html";
+};
+
+$("cameraBtn").onclick = async () => {
+  try {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Camera is not supported. Please upload a file.");
+    }
+
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" },
+      audio: false
+    });
+
+    $("video").srcObject = cameraStream;
+    $("cameraArea").hidden = false;
+    showError("");
+  } catch (error) {
+    showError("Camera unavailable. Allow permission or upload a file.");
+  }
+};
+
+function stopCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+  }
+  $("cameraArea").hidden = true;
+}
+
+$("closeCamera").onclick = stopCamera;
+
+$("captureBtn").onclick = () => {
+  const video = $("video");
+
+  if (!video.videoWidth) {
+    showError("Wait for the camera to become ready.");
+    return;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  canvas.getContext("2d").drawImage(video, 0, 0);
+
+  canvas.toBlob(blob => {
+    if (blob) {
+      acceptFile(new File([blob], "camera-capture.jpg", {
+        type: "image/jpeg"
+      }));
+      stopCamera();
+    } else {
+      showError("Could not capture the image.");
+    }
+  }, "image/jpeg", 0.92);
+};
+
+$("screenBtn").onclick = async () => {
+  if (!selectedFile) {
+    showError("Please select a document first.");
+    return;
+  }
+
+  try {
+    const db = await openDB();
+    const data = await selectedFile.arrayBuffer();
+
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction("files", "readwrite");
+      tx.objectStore("files").put({
+        id: "current",
+        name: selectedFile.name,
+        type: selectedFile.type,
+        size: selectedFile.size,
+        data
+      });
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+
+    sessionStorage.setItem("dss_file_meta", JSON.stringify({
+      name: selectedFile.name,
+      type: selectedFile.type,
+      size: selectedFile.size
+    }));
+
+    stopCamera();
+    window.location.href = "result.html";
+  } catch (error) {
+    showError("Could not save the file. Please try again.");
+  }
+};
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("dss_prototype_files", 1);
+
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore("files", { keyPath: "id" });
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+</script>
+</body>
+</html>
